@@ -98,7 +98,7 @@ $ModulesImported = @()
 
                 if(($AutomationModule) -and $AutomationModule.Version -eq $ModuleVersion) {
                     # Skip importing this module                
-                    Write-Output "Module $ModuleName is already in the service"
+                    Write-Output "Module $ModuleName is already at latest version $ModuleVersion."
                     return
                 }
 
@@ -242,3 +242,5 @@ foreach ($Module in $ExistingModules)
         -ModuleName $Module.Name
 
 }
+
+Write-Output ("Completed.")
