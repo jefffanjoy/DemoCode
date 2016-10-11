@@ -11,10 +11,13 @@
     It then updates all of the existing modules in the Automation account to the latest.
 
 .PARAMETER ResourceGroupName
-    Optional. The name of the Azure Resource Group containing the Automation account to import this module to.
+    Optional. The name of the Azure Resource Group containing the Automation account where the
+    modules will be updated.  If not provided, the Resource Group for the job that is
+    executing will be used.
 
 .PARAMETER AutomationAccountName
-    Optional. The name of the Automation account to import this module to.
+    Optional. The name of the Automation account where the modules will be updated.  If not
+    provided, the Automation account for the job that is executing will be used.
 
 .EXAMPLE
     Update-AzureGalleryModules
