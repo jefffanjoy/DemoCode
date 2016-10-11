@@ -225,6 +225,9 @@ if (!($ResourceGroupName)) {
     $AutomationAccountName = $CurrentJob.AutomationAccountName
 }
 
+Write-Output ("Using Resource Group     : {0}" -f $ResourceGroupName)
+Write-Output ("Using Automation Account : {0}" -f $AutomationAccountName)
+
 # Update existing Azure RM modules
 $ExistingModules = Get-AzureRmAutomationModule -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName `
                     | where {$_.Name -match "Azure"} | select Name
