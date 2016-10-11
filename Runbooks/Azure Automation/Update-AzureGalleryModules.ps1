@@ -1,5 +1,9 @@
 ﻿#Requires -Module AzureRM.Profile
 #Requires -Module AzureRM.Automation
+#Requires -Module AzureRM.Resources
+#
+# NOTE: The above three modules need to be at the same version level for this
+# runbook to function as expected.
 
 <#
 .SYNOPSIS 
