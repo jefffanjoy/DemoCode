@@ -184,22 +184,13 @@ $ModulesImported = @()
     }
 
     Function Get-CurrentJob {
-        [CmdletBinding()]
-        Param()
+        $AutomationAccounts = Find-AzureRmResource -ResourceType 'Microsoft.Automation/AutomationAccounts'
 
-        Begin { Write-Verbose ("Entering {0}." -f $MyInvocation.MyCommand) }
-
-        Process {
-            $AutomationAccounts = Find-AzureRmResource -ResourceType 'Microsoft.Automation/AutomationAccounts'
-
-            foreach ($AutomationAccount in $AutomationAccounts) {
-                $CurrentJob = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.Name -Id $PSPrivateMetadata.JobId.Guid -ErrorAction SilentlyContinue
-                if (!([string]::IsNullOrEmpty($CurrentJob))) { Break; }
-            }
-            $CurrentJob
+        foreach ($AutomationAccount in $AutomationAccounts) {
+            $CurrentJob = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.Name -Id $PSPrivateMetadata.JobId.Guid -ErrorAction SilentlyContinue
+            if (!([string]::IsNullOrEmpty($CurrentJob))) { Break; }
         }
-
-        End { Write-Verbose ("Exiting {0}." -f $MyInvocation.MyCommand) }
+        $CurrentJob
     }
 
 # Validate input parameters
