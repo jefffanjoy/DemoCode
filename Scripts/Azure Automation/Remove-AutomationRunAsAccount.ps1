@@ -63,7 +63,7 @@ $Choice = $Host.UI.PromptForChoice($null, $prompt, $PromptOptions, 1)
 # If user confirmed the deletion then go ahead and delete
 if ($Choice -eq 0) {
     Write-Host ("Removing AD application {0} ({1})." -f $ADApplication.ApplicationId, $ADApplication.DisplayName)
-    Remove-AzureRmADApplication -ObjectId $ADApplication.ApplicationId
+    Remove-AzureRmADApplication -ObjectId $ADApplication.ObjectId -Force
     Write-Host ("Removing service principal {0} ({1})." -f $ServicePrincipal.Id, $ServicePrincipal.DisplayName)
-    Remove-AzureRmServicePrincipal -ObjectId $ServicePrincipal.Id
+    Remove-AzureRmADServicePrincipal -ObjectId $ServicePrincipal.Id -Force
 }
