@@ -36,7 +36,7 @@ foreach ($Module in $RequiredModules) {
         $ModuleMissing = $true 
     }
 }
-if ($ModuleMissing -eq $true) { throw 'At least one required module was not found.' }
+if ($ModuleMissing -eq $true) { throw 'At least one required module was not found.  See "https://azure.microsoft.com/en-us/documentation/articles/powershell-install-configure/" for details on how to install Azure modules for PowerShell.' }
 
 # Login to Azure.
 Login-AzureRmAccount
