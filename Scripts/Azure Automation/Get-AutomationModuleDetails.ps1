@@ -15,6 +15,9 @@
 .EXAMPLE
     .\Get-AutomationModuleDetails.ps1 -ResourceGroupName 'MyResourceGroup' -AutomationAccountName 'MyAutomationAccount'
 
+.EXAMPLE
+    .\Get-AutomationModuleDetails.ps1 -ResourceGroupName 'MyResourceGroup' -AutomationAccountName 'MyAutomationAccount' | Out-File c:\temp\output.txt
+
 .NOTES
     AUTHOR  : Jeffrey Fanjoy
     LASTEDIT: 10/28/2016
