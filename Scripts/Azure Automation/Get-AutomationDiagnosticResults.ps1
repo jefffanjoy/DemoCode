@@ -217,10 +217,19 @@ Param (
             # Exporting runbooks
             $RunbookExportsResultFolder = ("{0}\RunbookExports" -f $AutomationAccountResultFolder)
             CreateFolder $RunbookExportsResultFolder
-            Write-Host ("Exporting runbooks to folder '{0}'." -f $RunbookExportsResultFolder)
+            $RunbookExportsPublishedResultFolder = ("{0}\Published" -f $RunbookExportsResultFolder)
+            CreateFolder $RunbookExportsPublishedResultFolder
+            $RunbookExportsDraftResultFolder = ("{0}\Draft" -f $RunbookExportsResultFolder)
+            CreateFolder $RunbookExportsDraftResultFolder
+            Write-Host ("Exporting published runbooks to folder '{0}'." -f $RunbookExportsPublishedResultFolder)
             $Runbooks | Where-Object { $_.State -ne 'New' } | ForEach-Object {
-                Write-Host ("Exporting runbook '{0}' to '{1}'." -f $_.Name, $RunbookExportsResultFolder)
-                $null = Export-AzureRmAutomationRunbook -ResourceGroupName $_.ResourceGroupName -AutomationAccountName $_.AutomationAccountName -Name $_.Name -Slot Published -OutputFolder $RunbookExportsResultFolder -Force
+                Write-Host ("Exporting published version of runbook '{0}' to '{1}'." -f $_.Name, $RunbookExportsPublishedResultFolder)
+                $null = Export-AzureRmAutomationRunbook -ResourceGroupName $_.ResourceGroupName -AutomationAccountName $_.AutomationAccountName -Name $_.Name -Slot Published -OutputFolder $RunbookExportsPublishedResultFolder -Force
+            }
+            Write-Host ("Exporting draft runbooks to folder '{0}'." -f $RunbookExportsPublishedResultFolder)
+            $Runbooks | Where-Object { $_.State -ne 'Published' } | ForEach-Object {
+                Write-Host ("Exporting draft version of runbook '{0}' to '{1}'." -f $_.Name, $RunbookExportsDraftResultFolder)
+                $null = Export-AzureRmAutomationRunbook -ResourceGroupName $_.ResourceGroupName -AutomationAccountName $_.AutomationAccountName -Name $_.Name -Slot Draft -OutputFolder $RunbookExportsDraftResultFolder -Force
             }
         }
     }
