@@ -8,6 +8,9 @@
 
     - Details about the Automation account.
     - Details about the Module assets.
+    - Details about the Variable assets.
+    - Details about the Connection assets.
+    - Details about the Credential assets.
     - Details about the Schedule assets.
     - Details about the scheduled runbooks (schedules linked to runbooks).
     - Summary details about each runbook.
