@@ -124,7 +124,10 @@ Param (
         $ModuleMissing = $false
         foreach ($Module in $RequiredModules) {
             Write-Host ("Checking for module '{0}'." -f $Module)
-            if (!(Get-Module -Name $Module -ListAvailable)) { 
+            if (Get-Module -Name $Module -ListAvailable) {
+                Write-Host ("Importing module '{0}'." -f $Module)
+                Import-Module $Module
+            } else {
                 Write-Host ("Module '{0}' was not found." -f $Module) -ForegroundColor Red
                 $ModuleMissing = $true 
             }
@@ -474,7 +477,7 @@ VerifyModules
 
 # Login to Azure.
 Write-Host ("Prompting user to login to Azure.")
-Login-AzureRmAccount
+Add-AzureRmAccount
 
 # Select subscription if more than one is available
 Write-Host ("Selecting desired Azure Subscription.")
