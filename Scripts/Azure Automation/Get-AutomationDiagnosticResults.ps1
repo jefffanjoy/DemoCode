@@ -51,7 +51,7 @@
     PARAMETERS ARE NOT INCLUDED TO SCOPE DOWN THE RUNBOOKS/JOBS THAT ARE PROCESSED.
 
 .PARAMETER NumberOfJobs
-    Optional.  By default, the last 100 jobs for each Automation account are
+    Optional.  By default, the last 20 jobs for each Automation account are
     processed.  This parameter defines the last N jobs that will be processed.
 
 .EXAMPLE
@@ -114,7 +114,7 @@ Param (
     [Parameter(Mandatory=$false)]
     [switch] $IncludeAllStreamValues,
     [Parameter(Mandatory=$false)]
-    [int] $NumberOfJobs = 100
+    [int] $NumberOfJobs = 20
 )
 
     Function VerifyModules {
@@ -180,9 +180,9 @@ Param (
                 $Modules += Get-AzureRmAutomationModule -Name $_.Name -ResourceGroupName $_.ResourceGroupName -AutomationAccountName $_.AutomationAccountName
             }
             Write-Host ("Writing module summary to '{0}\ModulesSummary.txt'." -f $ResultsFolder)
-            $Modules | Sort-Object Name | Format-Table * -AutoSize | Out-String -Width 8000 | Out-File ("{0}\ModulesSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
+            $Modules | Sort-Object Name | Select-Object Name, IsGlobal, ProvisioningState, Version, SizeInBytes, ActivityCount, CreationTime, LastModifiedTime | Format-Table * -AutoSize | Out-String -Width 8000 | Out-File ("{0}\ModulesSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing module summary in CSV to '{0}\ModulesSummary.csv'." -f $ResultsFolder)
-            $Modules | Sort-Object Name | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\ModulesSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
+            $Modules | Sort-Object Name | Select-Object Name, IsGlobal, ProvisioningState, Version, SizeInBytes, ActivityCount, CreationTime, LastModifiedTime | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\ModulesSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
         }
     }
 
@@ -285,9 +285,9 @@ Param (
                 $ScheduledRunbooks += Get-AzureRmAutomationScheduledRunbook -ResourceGroupName $_.ResourceGroupName -AutomationAccountName $_.AutomationAccountName -JobScheduleId $_.JobScheduleId
             }
             Write-Host ("Writing scheduled job summary to '{0}\ScheduledRunbooksSummary.txt'." -f $ResultsFolder)
-            $ScheduledRunbooks | Sort-Object ScheduleName | Select-Object ScheduleName, RunbookName, JobScheduleId, RunOn, ResourceGroupName, AutomationAccountName | Format-Table * -AutoSize | Out-String -Width 8000 | Out-File ("{0}\ScheduledRunbooksSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
+            $ScheduledRunbooks | Sort-Object ScheduleName | Select-Object ScheduleName, RunbookName, JobScheduleId, RunOn | Format-Table * -AutoSize | Out-String -Width 8000 | Out-File ("{0}\ScheduledRunbooksSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing scheduled job summary in CSV to '{0}\ScheduledRunbooksSummary.csv'." -f $ResultsFolder)
-            $ScheduledRunbooks | Sort-Object ScheduleName | Select-Object ScheduleName, RunbookName, JobScheduleId, RunOn, ResourceGroupName, AutomationAccountName | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\ScheduledRunbooksSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
+            $ScheduledRunbooks | Sort-Object ScheduleName | Select-Object ScheduleName, RunbookName, JobScheduleId, RunOn | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\ScheduledRunbooksSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing scheduled job details in JSON to '{0}\ScheduledRunbooksJSON.txt'." -f $ResultsFolder)
             $ScheduledRunbooks | Sort-Object ScheduleName | ConvertTo-Json -Depth 10 | Out-File ("{0}\ScheduledRunbooksJSON.txt" -f $ResultsFolder) -Encoding ascii -Force
         }
@@ -308,9 +308,9 @@ Param (
         } else {
             Write-Host ("Found '{0}' variable(s) in Automation account '{1}'." -f ($AutomationVariables | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
             Write-Host ("Writing variables summary to '{0}\VariablesSummary.txt'." -f $ResultsFolder)
-            $AutomationVariables | Sort-Object Name | Format-Table -AutoSize | Out-String -Width 8000 | Out-File ("{0}\VariablesSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
+            $AutomationVariables | Sort-Object Name | Select-Object Name, Encrypted, Value, CreationTime, LastModifiedTime, Description | Format-Table -AutoSize | Out-String -Width 8000 | Out-File ("{0}\VariablesSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing variables summary in CSV to '{0}\VariablesSummary.csv'." -f $ResultsFolder)
-            $AutomationVariables | Sort-Object Name | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\VariablesSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
+            $AutomationVariables | Sort-Object Name | Select-Object Name, Encrypted, Value, CreationTime, LastModifiedTime, Description | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\VariablesSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
         }
     }
 
@@ -329,9 +329,9 @@ Param (
         } else {
             Write-Host ("Found '{0}' credential(s) in Automation account '{1}'." -f ($AutomationCredentials | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
             Write-Host ("Writing credentials summary to '{0}\CredentialsSummary.txt'." -f $ResultsFolder)
-            $AutomationCredentials | Sort-Object Name | Format-Table -AutoSize | Out-String -Width 8000 | Out-File ("{0}\CredentialsSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
+            $AutomationCredentials | Sort-Object Name | Select-Object Name, UserName, CreationTime, LastModifiedTime, Description | Format-Table -AutoSize | Out-String -Width 8000 | Out-File ("{0}\CredentialsSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing credentials summary in CSV to '{0}\CredentialsSummary.csv'." -f $ResultsFolder)
-            $AutomationCredentials | Sort-Object Name | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\CredentialsSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
+            $AutomationCredentials | Sort-Object Name | Select-Object Name, UserName, CreationTime, LastModifiedTime, Description | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\CredentialsSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
         }
     }
 
@@ -350,9 +350,9 @@ Param (
         } else {
             Write-Host ("Found '{0}' certificate(s) in Automation account '{1}'." -f ($AutomationCertificates | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
             Write-Host ("Writing certificates summary to '{0}\CertificatesSummary.txt'." -f $ResultsFolder)
-            $AutomationCertificates | Sort-Object Name | Format-Table -AutoSize | Out-String -Width 8000 | Out-File ("{0}\CertificatesSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
+            $AutomationCertificates | Sort-Object Name | Select-Object Name, Exportable, ExpiryTime, Thumbprint, CreationTime, LastModifiedTime, Description | Format-Table -AutoSize | Out-String -Width 8000 | Out-File ("{0}\CertificatesSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing certificates summary in CSV to '{0}\CertificatesSummary.csv'." -f $ResultsFolder)
-            $AutomationCertificates | Sort-Object Name | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\CertificatesSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
+            $AutomationCertificates | Sort-Object Name | Select-Object Name, Exportable, ExpiryTime, Thumbprint, CreationTime, LastModifiedTime, Description | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\CertificatesSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
         }
     }
 
@@ -418,9 +418,9 @@ Param (
                 $Jobs += Get-AzureRmAutomationJob -ResourceGroupName $_.ResourceGroupname -AutomationAccountName $_.AutomationAccountName -Id $_.JobId
             }
             Write-Host ("Writing job summary to '{0}\JobsSummary.txt'." -f $ResultsFolder)
-            $Jobs | Select-Object JobId, RunbookName, Status, StatusDetails, Exception, HybridWorker, StartedBy, CreationTime, StartTime, EndTime, @{Name="Duration";Expression={$_.EndTime - $_.StartTime}} | Format-Table * -AutoSize | Out-String -Width 8000 | Out-File ("{0}\JobsSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
+            $Jobs | Select-Object JobId, RunbookName, Status, StatusDetails, HybridWorker, StartedBy, CreationTime, StartTime, EndTime, @{Name="Duration";Expression={$_.EndTime - $_.StartTime}}, Exception | Format-Table * -AutoSize | Out-String -Width 8000 | Out-File ("{0}\JobsSummary.txt" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing job summary in CSV to '{0}\JobsSummary.csv'." -f $ResultsFolder)
-            $Jobs | Select-Object JobId, RunbookName, Status, StatusDetails, Exception, HybridWorker, StartedBy, CreationTime, StartTime, EndTime, @{Name="Duration";Expression={$_.EndTime - $_.StartTime}} | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\JobsSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
+            $Jobs | Select-Object JobId, RunbookName, Status, StatusDetails, HybridWorker, StartedBy, CreationTime, StartTime, EndTime, @{Name="Duration";Expression={$_.EndTime - $_.StartTime}}, Exception | ConvertTo-Csv -NoTypeInformation | Out-File ("{0}\JobsSummary.csv" -f $ResultsFolder) -Encoding ascii -Force
             Write-Host ("Writing job details in JSON to '{0}\JobsJSON.txt'." -f $ResultsFolder)
             $Jobs | Select-Object *, @{Name="Duration";Expression={$_.EndTime - $_.StartTime}} | ConvertTo-Json -Depth 10 | Out-File ("{0}\JobsJSON.txt" -f $ResultsFolder) -Encoding ascii -Force
 
