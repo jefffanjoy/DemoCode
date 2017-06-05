@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0.1.1
+.VERSION 1.0.1.3
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -138,7 +138,7 @@ NOTE: While the script is for Azure Automation, it is not supported to run in Az
 .NOTES
     AUTHOR  : Jeffrey Fanjoy
 
-    Requires: AzureRM.profile, AzureRM.resources, AzureRM.automation
+    Requires: AzureRM
 #>
 
 Param (
@@ -181,8 +181,8 @@ Param (
             # Check if the module is already installed.
             $CurrentModule = Get-Module -Name $ModuleName -ListAvailable | Where-Object "Version" -eq $ModuleVersion
             if (!$CurrentModule) {
-                Write-Output ("Module {0} not found or not correct version, installing version {1}." -f $ModuleName, $ModuleVersion)
-                $null = Install-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -ErrorAction Stop
+                Write-Output ("Module {0} not found or not latest version, installing version {1}." -f $ModuleName, $ModuleVersion)
+                $null = Install-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -AllowClobber -ErrorAction Stop
                 Write-Output ("Installed version {0} of module {1}." -f $ModuleVersion, $ModuleName)
             } else {
                 Write-Output ("Required version {0} of module {1} is installed." -f $ModuleVersion, $ModuleName)
@@ -553,16 +553,25 @@ Add-AzureRmAccount
 # Select subscription if more than one is available
 Write-Output ("Selecting desired Azure Subscription.")
 $Subscriptions = Get-AzureRmSubscription
+Write-Output ("Found {0} subscription(s)." -f ($Subscriptions | Measure-Object).Count)
+$Subscriptions | Format-Table -AutoSize | Out-String -Width 8000
 switch (($Subscriptions | Measure-Object).Count) {
     0 { throw "No subscriptions found." }
     1 { 
-        $Subscription = $Subscriptions[0] 
-        $AzureContext = Get-AzureRmContext
+        if ($Subscriptions[0].Id) {
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscriptions[0].Id
+        } else {
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscriptions[0].SubscriptionId
+        }
     }
     default { 
         Write-Output ("Multiple Subscriptions found, prompting user to select desired Azure Subscription.")
         $Subscription = ($Subscriptions | Out-GridView -Title 'Select Azure Subscription' -PassThru)
-        $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.SubscriptionId
+        if ($Subscription.Id) {
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.Id
+        } else {
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.SubscriptionId
+        }
     }
 }
 Write-Output ("Subscription successfully selected.")
