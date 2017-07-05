@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0.1.3
+.VERSION 1.0.2.2
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -154,6 +154,17 @@ Param (
     [int] $NumberOfJobs = 20
 )
 
+    # Assume going in that requirements have been met unless otherwise determined
+    $RequirementsMet = $true
+    $RequiredModulesMet = $true
+
+    # List of modules that are required
+    $Modules = @(
+        @{ Name = 'AzureRM.profile'; Version = [System.Version]'2.5.0' }
+        @{ Name = 'AzureRM.automation'; Version = [System.Version]'2.5.0' }
+        @{ Name = 'AzureRM.resources'; Version = [System.Version]'3.5.0' }
+    )
+
     Function Test-IsAdmin {
         ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
     }
@@ -182,7 +193,7 @@ Param (
             $CurrentModule = Get-Module -Name $ModuleName -ListAvailable | Where-Object "Version" -eq $ModuleVersion
             if (!$CurrentModule) {
                 Write-Output ("Module {0} not found or not latest version, installing version {1}." -f $ModuleName, $ModuleVersion)
-                $null = Install-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -AllowClobber -ErrorAction Stop
+                $null = Install-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -ErrorAction Stop
                 Write-Output ("Installed version {0} of module {1}." -f $ModuleVersion, $ModuleName)
             } else {
                 Write-Output ("Required version {0} of module {1} is installed." -f $ModuleVersion, $ModuleName)
@@ -190,9 +201,40 @@ Param (
         }
     }
 
+    # Check to confirm that dependency modules are installed
+    Function CheckDependencyModules {
+        Write-Output ("Checking for presence of required modules.")
+        foreach ($Module in $Modules) {
+            if ([string]::IsNullOrEmpty($Module.Version)) {
+                Write-Output ("Checking for module '{0}'." -f $Module.Name)
+            } else {
+                Write-Output ("Checking for module '{0}' of at least version '{1}'." -f $Module.Name, $Module.Version)
+            }
+            $LatestVersion = (Find-Module -Name $Module.Name).Version
+            $CurrentModule = Get-Module -Name $Module.Name -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
+            if ($CurrentModule) {
+                Write-Output ("Found version '{0}' of module '{1}' installed." -f $CurrentModule.Version, $CurrentModule.Name)
+                if ($LatestVersion) {
+                    if ($LatestVersion.Version -gt $CurrentModule.Version) {
+                        Write-Output ("There is a newer version of module '{0}'.  Version '{1}' is available." -f $LatestVersion.Name, $LatestVersion.Version)
+                    }
+                }
+                if ($CurrentModule.Version -lt $Module.Version) {
+                    Write-Error ("Installed version '{0}' of module '{1}' does not meet minimum requirements." -f $CurrentModule.Version, $CurrentModule.Name)
+                    $script:RequirementsMet = $false
+                    $script:RequiredModulesMet = $false
+                }
+            } else {
+                Write-Error ("Could not find module '{0}' installed." -f $Module.Name)
+                $script:RequirementsMet = $false
+                $script:RequiredModulesMet = $false
+            }
+        }
+    }
+
     Function CheckDependencies {
         Write-Output ("Checking for dependencies.")
-        AddOrUpdateModules
+        CheckDependencyModules
     }
 
     Function CreateFolder {
@@ -545,6 +587,14 @@ Start-Transcript -Path ("{0}\Transcript.txt" -f $AzureAutomationDiagResultPath)
 # Confirm that all dependencies are available and if not, install where
 # possible
 CheckDependencies
+if (!$RequirementsMet) { 
+    Write-Error ("Script execution aborted as minimum requirements have not been met.  See tracing above for details.") 
+    if (!$RequiredModulesMet) {
+        Write-Warning ("To install latest version of AzureRM cmdlets, see: https://docs.microsoft.com/en-us/powershell/azure/install-azurerm-ps")
+    }
+    Stop-Transcript
+    Break
+}
 
 # Login to Azure.
 Write-Output ("Prompting user to login to Azure.")

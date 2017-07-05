@@ -36,7 +36,12 @@ $subscriptions = Get-AzureRmSubscription
 If($subscriptions.count -gt 1)
 {
     $subscription = $subscriptions | Out-GridView -PassThru
-    Select-AzureRmSubscription -SubscriptionId $subscription.Subscriptionid
+    if ($Subscription.Id) {
+        $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.Id
+    } else {
+        $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.SubscriptionId
+    }
+#    Select-AzureRmSubscription -SubscriptionId $subscription.Subscriptionid
 } 
 
 $ExportCert = @'
