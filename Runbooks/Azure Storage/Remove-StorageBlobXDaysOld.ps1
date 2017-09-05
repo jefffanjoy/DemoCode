@@ -44,7 +44,7 @@ foreach($container in $containers) {  
         foreach ($blob in $blobs) { 
             $lastModified = $blob.LastModified 
             if ($lastModified -ne $null) { 
-                $blobDays = ([DateTime]::Now - [DateTime]$lastModified) 
+                $blobDays = ([System.DateTimeOffset]::Now - [System.DateTimeOffset]$lastModified) 
                 Write-Output ("Blob {0} in storage for {1} days" -f $blob.Name, $blobDays)  
                 
                 if ($blobDays.Days -ge $DaysOld) { 
@@ -61,7 +61,7 @@ foreach($container in $containers) {  
         } 
     } 
          
-    $blobs = Get-AzureStorageBlob -Container $container.Name  
+    $blobs = Get-AzureStorageBlob -Container $container.Name -Context $context
     if ($blobs -eq $null -or $blobs.Count -eq 0) { 
         Write-Output ("Removing Blob container: {0}" -f $container.Name)  
         if ($WhatIf -eq $true) {
@@ -78,6 +78,6 @@ foreach($container in $containers) {  
 $Finish = [System.DateTime]::Now 
 $TotalUsed = $Finish.Subtract($Start).TotalSeconds 
     
-Write-Output ("Removed {0} blobs in {1} containers in storage account {2} of subscription {3} in {4} seconds." -f $blobsRemoved, $containersremoved, $StorageAccountName, $AzureConnectionName, $TotalUsed) 
+Write-Output ("Removed {0} blobs and {1} containers in storage account {2} in {3} seconds." -f $blobsRemoved, $containersremoved, $StorageAccountName, $TotalUsed) 
 "Finished " + $Finish.ToString("HH:mm:ss.ffffzzz") 
   
