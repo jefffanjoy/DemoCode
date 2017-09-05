@@ -13,7 +13,7 @@ $context = New-AzureStorageContext `
     -StorageAccountName $StorageAccountName `
     -StorageAccountKey $StorageAccountKey
 
-$result = Get-AzureStorageBlobContent `
+$result = Remove-AzureStorageBlob `
     -Blob $BlobName `
     -Container $ContainerName `
     -Context $context
