@@ -29,4 +29,4 @@ $Parameters = @{
     Credential                  = $Credential
 }
 
-Send-MailMessage $Parameters
+Send-MailMessage @Parameters
