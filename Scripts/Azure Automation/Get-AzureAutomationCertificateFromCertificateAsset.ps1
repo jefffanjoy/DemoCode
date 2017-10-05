@@ -32,6 +32,18 @@ If($subscriptions.count -gt 1)
     $AzureContext
 } 
 
+# Check to confirm that the certificate asset exists
+Write-Output ("Getting details of certificate asset with name '{0}'." -f $CertificateAssetName)
+$CertificateAsset = Get-AzureRmAutomationCertificate -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName -Name $CertificateAssetName
+if ($CertificateAsset -eq $null) {
+    throw ("Certificate asset with name '{0}' was not found in automation account '{1}'." -f $CertificateAssetName, $AutomationAccountName)
+} else {
+    $CertificateAsset
+    if ($CertificateAsset.Exportable -eq $false) {
+        throw ("Certificate asset with name '{0}' is configured as non-exportable." -f $CertificateAssetName)
+    }
+}
+
 # Check to confirm that there is an AzureRunAsConnection as this is required for the 
 # runbook that we are going to create to function
 $RunAsConnection = Get-AzureRmAutomationConnection -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName -Name 'AzureRunAsConnection'
