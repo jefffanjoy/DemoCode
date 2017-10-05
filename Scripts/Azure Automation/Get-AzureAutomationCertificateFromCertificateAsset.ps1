@@ -10,7 +10,7 @@
     [Parameter(Mandatory=$false)]
     [Switch] $ImportCertificate,
     [Parameter(Mandatory=$false)]
-    [ValidateSet('LocalSystem', 'CurrentUser')]
+    [ValidateSet('LocalMachine', 'CurrentUser')]
     [String] $ImportCertificateStore = 'CurrentUser'
 )
 
@@ -112,7 +112,7 @@ try
         -Published | Write-Verbose 
 
     $RandomNumber = (Get-Random -Minimum 10000 -Maximum 100000)
-    $StorageAccountName = "runascertificate" + $RandomNumber
+    $StorageAccountName = "tempstorage" + $RandomNumber
 
     New-AzureRmAutomationVariable `
         -ResourceGroupName $ResourceGroupName `
@@ -127,11 +127,13 @@ try
         AutomationAccount       = $AutomationAccountName
         CertificateAssetName    = $CertificateAssetName
     }
+    Write-Verbose ("Starting runbook Export-Cert with parameters: {0}" -f ($Params | ConvertTo-Json))
     $Job = Start-AzureRmAutomationRunbook `
         -Name Export-Cert `
         -ResourceGroupName $ResourceGroupName `
         -AutomationAccountName $AutomationAccountName `
         -Parameters $Params
+    Write-Verbose ("Job id: {0}" -f $Job.JobId)
 
     do {
         $Job = Get-AzureRmAutomationJob -Id $Job.JobId -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName
@@ -142,14 +144,16 @@ try
     if ($Job.Status -eq "Completed")
     {
         Write-Output ("Downloading certificate from storage account {0}" -f $StorageAccountName)
+        Write-Verbose ("Getting storage account details for storage account {0} in resource group {1}." -f $StorageAccountName, $ResourceGroupName)
         $StorageAccount = Get-AzureRmStorageAccount -StorageAccountName $StorageAccountName -ResourceGroupName $ResourceGroupName
+        Write-Verbose ("Getting blob data from storage account.")
         $Blob = Get-AzureStorageBlob -Context $StorageAccount.Context -Container runascert
 
         $TargetFolderPath = $env:TEMP
         $result = Get-AzureStorageBlobContent `
             -Blob $Blob.Name `
             -Container runascert `
-            -Context $StorageAccount `
+            -Context $StorageAccount.Context `
             -Destination $TargetFolderPath `
             -Force
 
@@ -179,8 +183,11 @@ Catch
 }
 finally
 {
+    Write-Verbose ("Removing storage account {0}." -f $StorageAccountName)
     Remove-AzureRmStorageAccount -ResourceGroupName $ResourceGroupName -Name $StorageAccountName -Force
+    Write-Verbose ("Removing runbook Export-Cert.")
     Remove-AzureRmAutomationRunbook "Export-Cert" -ResourceGroupName $ResourceGroupName -AutomationAccount $AutomationAccountName -Force
+    Write-Verbose ("Removing automation variable CertPassword.")
     Remove-AzureRmAutomationVariable -ResourceGroupName $ResourceGroupName -AutomationAccount $AutomationAccountName -Name CertPassword
 }
 
