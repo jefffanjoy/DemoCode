@@ -34,7 +34,7 @@ If($subscriptions.count -gt 1)
 
 # Check to confirm that there is an AzureRunAsConnection as this is required for the 
 # runbook that we are going to create to function
-$RunAsConnection = Get-AutomationConnection -Name 'AzureRunAsConnection'
+$RunAsConnection = Get-AzureRmAutomationConnection -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName -Name 'AzureRunAsConnection'
 if ($RunAsConnection -eq $null)
 {
     throw "RunAs connection is not available in the automation account. Please create one first."
