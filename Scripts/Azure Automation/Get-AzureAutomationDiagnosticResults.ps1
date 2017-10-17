@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0.2.2
+.VERSION 1.0.3.0
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -91,8 +91,13 @@ NOTE: While the script is for Azure Automation, it is not supported to run in Az
     PARAMETERS ARE NOT INCLUDED TO SCOPE DOWN THE RUNBOOKS/JOBS THAT ARE PROCESSED.
 
 .PARAMETER NumberOfJobs
-    Optional.  By default, the last 20 jobs for each Automation account are
-    processed.  This parameter defines the last N jobs that will be processed.
+    Optional.  By default, the last 5 jobs for each runbook in each Automation
+    account are processed.  This parameter defines the last N jobs that will be 
+    processed for each runbook.
+
+.PARAMETER NumberOfDays
+    Optional.  By default, the last 7 days of jobs are processed.  This parameter
+    defines the last N days of jobs that will be processed.
 
 .EXAMPLE
     .\Get-AutomationDiagnosticResults.ps1
@@ -151,7 +156,9 @@ Param (
     [Parameter(Mandatory=$false)]
     [switch] $IncludeAllStreamValues,
     [Parameter(Mandatory=$false)]
-    [int] $NumberOfJobs = 20
+    [int] $NumberOfJobs = 5,
+    [Parameter(Mandatory=$false)]
+    [int] $NumberOfDays = 7
 )
 
     # Assume going in that requirements have been met unless otherwise determined
@@ -160,9 +167,9 @@ Param (
 
     # List of modules that are required
     $Modules = @(
-        @{ Name = 'AzureRM.profile'; Version = [System.Version]'2.5.0' }
-        @{ Name = 'AzureRM.automation'; Version = [System.Version]'2.5.0' }
-        @{ Name = 'AzureRM.resources'; Version = [System.Version]'3.5.0' }
+        @{ Name = 'AzureRM.profile'; Version = [System.Version]'3.4.0' }
+        @{ Name = 'AzureRM.automation'; Version = [System.Version]'3.4.0' }
+        @{ Name = 'AzureRM.resources'; Version = [System.Version]'4.4.0' }
     )
 
     Function Test-IsAdmin {
@@ -493,26 +500,33 @@ Param (
             [string] $ResultsFolder
         )
 
-        Write-Output ("Retrieving list of jobs in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
-        if ($JobIds) {
-            $JobIds | ForEach-Object { Write-Output ("Scoping results to include job id '{0}'." -f $_) }
-            $JobsList = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName | Where-Object { $JobIds -contains $_.JobId }
+        Write-Output ("Retrieving list of runbooks imported into Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
+        if ($RunbookNames) {
+            $RunbookNames | ForEach-Object { Write-Output ("Scoping results to include runbook named '{0}'." -f $_) }
+            $RunbooksList = Get-AzureRmAutomationRunbook -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName | Where-Object { $RunbookNames -contains $_.Name }
         } else {
-            if ($RunbookNames) {
-                $RunbookNames | ForEach-Object { Write-Output ("Scoping results to include jobs for runbook named '{0}'." -f $_) }
-                $JobsList = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName | Where-Object { $RunbookNames -contains $_.RunbookName } | Sort-Object CreationTime | Select-Object -Last $NumberOfJobs | Sort-Object CreationTime -Descending
-            } else {
-                $JobsList = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName | Sort-Object CreationTime | Select-Object -Last $NumberOfJobs | Sort-Object CreationTime -Descending
+            $RunbooksList = Get-AzureRmAutomationRunbook -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName 
+        }
+        if (($RunbooksList | Measure-Object).Count -eq 0) {
+            Write-Output ("No runbooks found in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
+        } else {
+            Write-Output ("Found '{0}' runbook(s) in Automation account '{1}'." -f ($RunbooksList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
+            Write-Output ("Retrieving jobs that have executed in the last '{0}' day(s) from Automation account '{1}'." -f $NumberOfDays, $AutomationAccount.AutomationAccountName)
+            $JobsLastNDays = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName -StartTime ((Get-Date).AddDays(-$NumberOfDays)) 
+            Write-Output ("Retrieved a total of '{0}' job(s) from Automation account '{1}'." -f ($JobsLastNDays | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
+            $JobsList = @()
+            foreach ($Runbook in $RunbooksList) {
+                Write-Output ("Filtering last '{0}' job(s) for runbook '{1}' in Automation account '{2}' having executed in the last '{3}' day(s)." -f $NumberOfJobs, $Runbook.Name, $AutomationAccount.AUtomationAccountName, $NumberOfDays)
+                $RunbookJobsList = $JobsLastNDays | Where-Object { $_.RunbookName -eq $Runbook.Name } | Sort-Object CreationTime | Select-Object -Last $NumberOfJobs | Sort-Object CreationTime -Descending
+                Write-Output ("Filtered '{0}' job(s) for runbook '{1}'." -f ($RunbookJobsList | Measure-Object).Count, $Runbook.Name)
+                $JobsList += $RunbookJobsList
             }
         }
+
         if (($JobsList | Measure-Object).Count -eq 0) {
             Write-Output ("No jobs found in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
         } else {
-            if (($JobsList | Measure-Object).Count -eq $NumberOfJobs) {
-                Write-Output ("Found '{0}' job(s) in Automation account '{1}'.  Results limited by `$NumberOfJobs value of '{2}'." -f ($JobsList | Measure-Object).Count, $AutomationAccount.AutomationAccountName, $NumberOfJobs)
-            } else {
-                Write-Output ("Found '{0}' job(s) in Automation account '{1}'." -f ($JobsList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
-            }
+            Write-Output ("Retrieved '{0}' job(s) in Automation account '{1}'." -f ($JobsList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
             $Jobs = @()
             $JobsList | ForEach-Object {
                 Write-Output ("Getting details for job id '{0}' of runbook '{1}'." -f $_.JobId, $_.RunbookName)
@@ -543,12 +557,12 @@ Param (
                         if ($IncludeAllStreamValues) {
                             Write-Output ("Getting job stream record for job stream id '{0}'." -f $JobStream.StreamRecordId)
                             $OutputRecord = $JobStream | Get-AzureRmAutomationJobOutputRecord
-                            Add-Member -InputObject $JobStreamRecord -MemberType NoteProperty -Name StreamValue -Value ($OutputRecord.Value | ConvertTo-Json -Depth 10) -Force
+                            Add-Member -InputObject $JobStreamRecord -MemberType NoteProperty -Name StreamValue -Value $OutputRecord.Value -Force
                         } else {
                             if ($JobStream.Type -eq 'Error') {
                                 Write-Output ("Getting job stream record for job stream id '{0}'." -f $JobStream.StreamRecordId)
                                 $OutputRecord = $JobStream | Get-AzureRmAutomationJobOutputRecord
-                                Add-Member -InputObject $JobStreamRecord -MemberType NoteProperty -Name StreamValue -Value ($OutputRecord.Value | ConvertTo-Json -Depth 10) -Force
+                                Add-Member -InputObject $JobStreamRecord -MemberType NoteProperty -Name StreamValue -Value $OutputRecord.Value -Force
                             }
                         }
                         $JobStreamRecords += $JobStreamRecord | Select-Object RunbookName, JobId, Status, StreamRecordId, StreamTime, StreamType, StreamSummary, StreamValue
@@ -652,7 +666,6 @@ $AutomationAccounts | Format-Table * -AutoSize | Out-String -Width 8000 | Out-Fi
 $AutomationAccounts | ForEach-Object {
     $AutomationAccountResultFolder = ("{0}\{1}" -f $AzureAutomationDiagResultPath, $_.AutomationAccountName)
     CreateFolder $AutomationAccountResultFolder
-
     WriteModuleDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
     WriteRunbookDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
     WriteScheduleDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
