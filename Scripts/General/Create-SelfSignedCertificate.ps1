@@ -50,3 +50,5 @@ if (!(Test-IsAdmin)) {
 
 # Create self-signed certificate
 CreateSelfSignedCertificate -CertificateName $CertificateName -Password $CertificatePassword -OutputFolder $CertificateOutputFolder -ExpirationInMonths $CertificateExpirationInMonths
+
+#This is a test.
