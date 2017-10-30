@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0.3.0
+.VERSION 1.0.3.1
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -62,6 +62,15 @@ NOTE: While the script is for Azure Automation, it is not supported to run in Az
 
     Results will be written to $env:TEMP\AzureAutomationDiagnostics\yyyyMMddHHmmss.
     The script will open File Explorer to that location when it has completed.
+
+.PARAMETER Environment
+    Optional.  Identifies the Azure environment that is to be used.  By default the
+    environment AzureCloud is used.
+
+    Available options are:
+
+        - AzureCloud
+        - AzureUSGovernment
 
 .PARAMETER AutomationAccountNames
     Optional.  An array of Automation account names to be processed.  By default
@@ -148,6 +157,9 @@ NOTE: While the script is for Azure Automation, it is not supported to run in Az
 
 Param (
     [Parameter(Mandatory=$false)]
+    [ValidateSet('AzureCloud','AzureUSGovernment')]
+    [string] $Environment = 'AzureCloud',
+    [Parameter(Mandatory=$false)]
     [string[]] $AutomationAccountNames,
     [Parameter(Mandatory=$false)]
     [string[]] $RunbookNames,
@@ -171,42 +183,6 @@ Param (
         @{ Name = 'AzureRM.automation'; Version = [System.Version]'3.4.0' }
         @{ Name = 'AzureRM.resources'; Version = [System.Version]'4.4.0' }
     )
-
-    Function Test-IsAdmin {
-        ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
-    }
-
-    # If PowerShell version is 5 or higher then PowerShellGet is available so
-    # we can have the required modules automatically installed or updated.
-    Function AddOrUpdateModules {
-        # List of modules that we require
-        $Modules = @(
-            @{ Name = 'AzureRM'; Version = '' }
-        )
-        Write-Output ("Importing or updating required modules.")
-        $Modules | ForEach-Object {
-            $ModuleName = $_.Name
-            Write-Output ("Checking module {0}." -f $ModuleName)
-
-            # Determine the module version that is needed and if it is blank
-            # then get the latest version.
-            if ([string]::IsNullOrEmpty($_.Version)) {
-                $ModuleVersion = (Find-Module -Name $ModuleName).Version
-            } else {
-                $ModuleVersion = $_.Version
-            }
-
-            # Check if the module is already installed.
-            $CurrentModule = Get-Module -Name $ModuleName -ListAvailable | Where-Object "Version" -eq $ModuleVersion
-            if (!$CurrentModule) {
-                Write-Output ("Module {0} not found or not latest version, installing version {1}." -f $ModuleName, $ModuleVersion)
-                $null = Install-Module -Name $ModuleName -RequiredVersion $ModuleVersion -Force -ErrorAction Stop
-                Write-Output ("Installed version {0} of module {1}." -f $ModuleVersion, $ModuleName)
-            } else {
-                Write-Output ("Required version {0} of module {1} is installed." -f $ModuleVersion, $ModuleName)
-            }
-        }
-    }
 
     # Check to confirm that dependency modules are installed
     Function CheckDependencyModules {
@@ -583,17 +559,6 @@ Param (
     }
 
 
-# Check if the script is run under Administrator role
-if (!(Test-IsAdmin)) {
-    $msg = @"
-    You do not have Administrator rights to run this script!
-    There are dependencies that require Administrator rights to install if necessary.
-    Please re-run this script as an Administrator.
-"@
-    Write-Warning $msg
-    Break
-}
-
 # Create folder structure needed for results
 CreateResultFolder
 Start-Transcript -Path ("{0}\Transcript.txt" -f $AzureAutomationDiagResultPath)
@@ -611,8 +576,8 @@ if (!$RequirementsMet) {
 }
 
 # Login to Azure.
-Write-Output ("Prompting user to login to Azure.")
-Add-AzureRmAccount
+Write-Output ("Prompting user to login to Azure environment '{0}'." -f $Environment)
+Add-AzureRmAccount -Environment $Environment
 
 # Select subscription if more than one is available
 Write-Output ("Selecting desired Azure Subscription.")
