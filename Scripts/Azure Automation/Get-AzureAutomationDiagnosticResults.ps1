@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0.3.1
+.VERSION 1.0.3.2
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -158,6 +158,7 @@ NOTE: While the script is for Azure Automation, it is not supported to run in Az
 Param (
     [Parameter(Mandatory=$false)]
     [ValidateSet('AzureCloud','AzureUSGovernment')]
+    [Alias('EnvironmentName')]
     [string] $Environment = 'AzureCloud',
     [Parameter(Mandatory=$false)]
     [string[]] $AutomationAccountNames,
@@ -504,7 +505,7 @@ Param (
         } else {
             Write-Output ("Retrieved '{0}' job(s) in Automation account '{1}'." -f ($JobsList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
             $Jobs = @()
-            $JobsList | ForEach-Object {
+            $JobsList | Sort-Object CreationTime -Descending | ForEach-Object {
                 Write-Output ("Getting details for job id '{0}' of runbook '{1}'." -f $_.JobId, $_.RunbookName)
                 $Jobs += Get-AzureRmAutomationJob -ResourceGroupName $_.ResourceGroupname -AutomationAccountName $_.AutomationAccountName -Id $_.JobId
             }
@@ -577,7 +578,10 @@ if (!$RequirementsMet) {
 
 # Login to Azure.
 Write-Output ("Prompting user to login to Azure environment '{0}'." -f $Environment)
-Add-AzureRmAccount -Environment $Environment
+$account = Add-AzureRmAccount -Environment $Environment
+if (!($account)) {
+    throw ("Unable to successfully authenticate to Azure for environment '{0}'." -f $Environment)
+}
 
 # Select subscription if more than one is available
 Write-Output ("Selecting desired Azure Subscription.")
