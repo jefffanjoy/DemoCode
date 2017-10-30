@@ -150,7 +150,7 @@ try
     do {
         $Job = Get-AzureRmAutomationJob -Id $Job.JobId -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName
         Write-Output ("Retrieving certificate from automation service..." + "Job Status is " + $Job.Status)
-        Sleep 5
+        Start-Sleep -Seconds 5
     } while ($Job.Status -ne "Completed" -and $Job.Status -ne "Failed" -and $Job.Status -ne "Suspended")
 
     if ($Job.Status -eq "Completed")
