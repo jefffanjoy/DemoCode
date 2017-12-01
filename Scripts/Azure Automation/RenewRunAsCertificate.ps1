@@ -103,7 +103,7 @@ $CertificateOutputFolder = $env:TEMP
 $AzureADSPNName = $Spn.ServicePrincipalNames | Where-Object { $_ -match 'https.*' }
 
 # Create self-signed certificate
-Write-Output ("Creating self-signed certificate with expiration in '{0}' month(s)." -f $CertificateExpiryInMonths)
+Write-Output ("Creating self-signed certificate with expiration in '{0}' month(s)." -f $CertificateExpirationInMonths)
 CreateSelfSignedCertificate -CertificateName $CertificateName -CertificatePassword $CertificatePassword -OutputFolder $CertificateOutputFolder -ExpirationInMonths $CertificateExpirationInMonths
 # Load the pfx certificate into an object
 $PfxCert = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList @(("{0}\{1}.pfx" -f $CertificateOutputFolder, $CertificateName), $CertificatePassword)
