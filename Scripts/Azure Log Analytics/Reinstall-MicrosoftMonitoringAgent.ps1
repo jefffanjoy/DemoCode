@@ -6,7 +6,10 @@ $WorkspaceKey = 'OMSWORKSPACEKEYGOESHERE'
 # If you want to install the extension even if it wasn't there before, set to true.
 $ForceInstallOfExtension = $false
 
-# Populate the VMs you want to process
+# Populate the VMs you want to process.  Example is a simple array but you could
+# Use Get-AzureRmVM, Find-AzureRmResource, import from a text file etc.  End
+# result just needs to be an array of VM names that exist in the subscription id
+# provided above.
 $VMsToProcess = @(
     'VMNAMEGOESHERE',
     'VMNAMEGOESHERE'
