@@ -64,7 +64,7 @@ foreach ($VM in $VMs)
                 if ($ext.ExtensionType -eq 'MicrosoftMonitoringAgent') {
                     Write-Output ("Removing extension named '{0}' of type '{1}'." -f $ExtensionName, $ext.ExtensionType)
                     try {
-                        Remove-AzureRmVMExtension -ResourceGroupName $VM.ResourceGroupName -VMName $VM.Name -Name $ExtensionName
+                        Remove-AzureRmVMExtension -ResourceGroupName $VM.ResourceGroupName -VMName $VM.Name -Name $ExtensionName -Force
                         $InstallExtension = $true
                         $ExtensionInstallName = $ExtensionName
                     } catch {
