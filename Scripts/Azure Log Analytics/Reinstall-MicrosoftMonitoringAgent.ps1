@@ -5,6 +5,7 @@ $WorkspaceKey = 'OMSWORKSPACEKEYGOESHERE'
 
 # If you want to install the extension even if it wasn't there before, set to true.
 $ForceInstallOfExtension = $false
+$DefaultExtensionName = 'MicrosoftMonitoringAgent'
 
 # Populate the VMs you want to process.  Example is a simple array but you could
 # Use Get-AzureRmVM, Find-AzureRmResource, import from a text file etc.  End
@@ -74,7 +75,7 @@ foreach ($VM in $VMs)
                 }
             }
             if ($InstallExtension) {
-                if (!$ExtensionInstallName) { $ExtensionInstallName = 'MicrosoftMonitoringAgent' }
+                if (!$ExtensionInstallName) { $ExtensionInstallName = $DefaultExtensionName }
                 Write-Output ("Installing MicrosoftMonitoringAgent extension to virtual machine '{0}' using extension name '{1}'." -f $VM.Name, $ExtensionInstallName)
                 try {
                     Set-AzureRmVMExtension -ResourceGroupName $VM.ResourceGroupName -VMName $VM.Name -Name $ExtensionInstallName -Publisher "Microsoft.EnterpriseCloud.Monitoring" -ExtensionType "MicrosoftMonitoringAgent" -TypeHandlerVersion '1.0' -Location $VM.Location -Settingstring $PublicConf -ProtectedSettingString $PrivateConf -ForceRerun True
