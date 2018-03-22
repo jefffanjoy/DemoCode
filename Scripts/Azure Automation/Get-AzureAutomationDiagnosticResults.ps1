@@ -484,33 +484,29 @@ Param (
         } else {
             $RunbooksList = Get-AzureRmAutomationRunbook -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName 
         }
-        if (($RunbooksList | Measure-Object).Count -eq 0 -and (!$JobIds)) {
-            Write-Output ("No runbooks found in Automation account '{0}' and no specific job ids specified." -f $AutomationAccount.AutomationAccountName)
+        Write-Output ("Found '{0}' runbook(s) in Automation account '{1}'." -f ($RunbooksList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
+        $JobsList = @()
+        If ($JobIds) {
+            foreach ($JobId in $JobIds) {
+                Write-Output ("Scoping results to include job id '{0}'." -f $JobId)
+                $JobsList += Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName -Id $JobId
+            }
+            Write-Output ("Retrieved a total of '{0}' job(s) from Automation account '{1}'." -f ($JobsList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
         } else {
-            Write-Output ("Found '{0}' runbook(s) in Automation account '{1}'." -f ($RunbooksList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
-            $JobsList = @()
-            If ($JobIds) {
-                foreach ($JobId in $JobIds) {
-                    Write-Output ("Scoping results to include job id '{0}'." -f $JobId)
-                    $JobsList += Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName -Id $JobId
-                }
-                Write-Output ("Retrieved a total of '{0}' job(s) from Automation account '{1}'." -f ($JobsList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
-            } else {
-                Write-Output ("Retrieving jobs that have executed in the last '{0}' day(s) from Automation account '{1}'." -f $NumberOfDays, $AutomationAccount.AutomationAccountName)
-                $JobsLastNDays = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName -StartTime ((Get-Date).AddDays(-$NumberOfDays)) 
-                Write-Output ("Retrieved a total of '{0}' job(s) from Automation account '{1}'." -f ($JobsLastNDays | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
-                foreach ($Runbook in $RunbooksList) {
-                    Write-Output ("Filtering last '{0}' job(s) for runbook '{1}' in Automation account '{2}' having executed in the last '{3}' day(s)." -f $NumberOfJobs, $Runbook.Name, $AutomationAccount.AUtomationAccountName, $NumberOfDays)
-                    $RunbookJobsList = $JobsLastNDays | Where-Object { $_.RunbookName -eq $Runbook.Name } | Sort-Object CreationTime | Select-Object -Last $NumberOfJobs | Sort-Object CreationTime -Descending
-                    Write-Output ("Filtered '{0}' job(s) for runbook '{1}'." -f ($RunbookJobsList | Measure-Object).Count, $Runbook.Name)
-                    $JobsList += $RunbookJobsList
-                }
-                if (!$RunbookNames) {
-                    Write-Output ("Filtering last '{0}' job(s) from Automation account '{1}' with no attached runbook (e.g. system jobs)." -f '50', $AutomationAccount.AutomationAccountName)
-                    $OrphanJobs = $JobsLastNDays | Where-Object { $RunbooksList.Name -notcontains $_.RunbookName } | Sort-Object CreationTime | Select-Object -Last 50 | Sort-Object CreationTime -Descending
-                    Write-Output ("Filtered '{0}' job(s) with no attached runbooks." -f ($OrphanJobs | Measure-Object).Count)
-                    $JobsList += $OrphanJobs
-                }
+            Write-Output ("Retrieving jobs that have executed in the last '{0}' day(s) from Automation account '{1}'." -f $NumberOfDays, $AutomationAccount.AutomationAccountName)
+            $JobsLastNDays = Get-AzureRmAutomationJob -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName -StartTime ((Get-Date).AddDays(-$NumberOfDays)) 
+            Write-Output ("Retrieved a total of '{0}' job(s) from Automation account '{1}'." -f ($JobsLastNDays | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
+            foreach ($Runbook in $RunbooksList) {
+                Write-Output ("Filtering last '{0}' job(s) for runbook '{1}' in Automation account '{2}' having executed in the last '{3}' day(s)." -f $NumberOfJobs, $Runbook.Name, $AutomationAccount.AUtomationAccountName, $NumberOfDays)
+                $RunbookJobsList = $JobsLastNDays | Where-Object { $_.RunbookName -eq $Runbook.Name } | Sort-Object CreationTime | Select-Object -Last $NumberOfJobs | Sort-Object CreationTime -Descending
+                Write-Output ("Filtered '{0}' job(s) for runbook '{1}'." -f ($RunbookJobsList | Measure-Object).Count, $Runbook.Name)
+                $JobsList += $RunbookJobsList
+            }
+            if (!$RunbookNames) {
+                Write-Output ("Filtering last '{0}' job(s) from Automation account '{1}' with no attached runbook (e.g. system jobs)." -f '50', $AutomationAccount.AutomationAccountName)
+                $OrphanJobs = $JobsLastNDays | Where-Object { $RunbooksList.Name -notcontains $_.RunbookName } | Sort-Object CreationTime | Select-Object -Last 50 | Sort-Object CreationTime -Descending
+                Write-Output ("Filtered '{0}' job(s) with no attached runbooks." -f ($OrphanJobs | Measure-Object).Count)
+                $JobsList += $OrphanJobs
             }
         }
 
