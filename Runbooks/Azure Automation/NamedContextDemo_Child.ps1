@@ -1,4 +1,4 @@
-﻿$SubscriptionId = '140aa888-06f1-45b7-9457-17d5aa7c1b33'
+﻿$SubscriptionId = 'YOURDESIREDSUBSCRIPTIONHERE'
 
 Write-Output "Logging into Azure..."
 $ServicePrincipalConnection = Get-AutomationConnection -Name "AzureRunAsConnection"
