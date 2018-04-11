@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.0.3.3
+.VERSION 1.0.3.5
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -569,10 +569,32 @@ Param (
         }
     }
 
+    Function WriteHybridWorkerDetails {
+        Param (
+            [Parameter(Mandatory=$true)]
+            [object] $AutomationAccount,
+            [Parameter(Mandatory=$true)]
+            [string] $ResultsFolder
+        )
+
+        Write-Output ("Retrieving list of hybrid worker groups registered in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
+        $HWGList = Get-AzureRmAutomationHybridWorkerGroup -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName
+        if (($HWGList | Measure-Object).Count -eq 0) {
+            Write-Output ("No hybrid worker groups found in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
+        } else {
+            Write-Output ("Found '{0}' hybrid worker group(s) in Automation account '{1}'." -f ($HWGList | Measure-Object).Count, $AutomationAccount.AutomationAccountName)
+        }
+        Write-Output ("Writing hybrid worker groups in JSON to '{0}\HybridWorkerGroups.txt'." -f $ResultsFolder)
+        $HWGList | Sort-Object Name | ConvertTo-Json -Depth 10 | Out-File ("{0}\HybridWorkerGroups.txt" -f $ResultsFolder) -Encoding ascii -Force
+    }
+
 
 # Create folder structure needed for results
 CreateResultFolder
 Start-Transcript -Path ("{0}\Transcript.txt" -f $AzureAutomationDiagResultPath)
+
+# Write the command line that was used when the script was called
+Write-Output ("Command line: {0}" -f $MyInvocation.Line)
 
 # Confirm that all dependencies are available and if not, install where
 # possible
@@ -654,6 +676,7 @@ $AutomationAccounts | ForEach-Object {
     WriteCertificateDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
     WriteCredentialDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
     WriteJobDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
+    WriteHybridWorkerDetails -AutomationAccount $_ -ResultsFolder $AutomationAccountResultFolder
 }
 
 Write-Output ("Execution completed.")
