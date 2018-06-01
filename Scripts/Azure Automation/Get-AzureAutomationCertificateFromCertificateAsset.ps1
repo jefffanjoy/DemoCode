@@ -130,7 +130,7 @@ try
         -ResourceGroupName $ResourceGroupName `
         -AutomationAccountName $AutomationAccountName `
         -Name "CertPassword" `
-        -Value $NewCertPassword `
+        -Value $CertificatePassword `
         -Encrypted $true | Write-Verbose 
 
     $Params = @{
