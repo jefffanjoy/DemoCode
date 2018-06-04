@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1.2.0
+.VERSION 1.1.2.1
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -631,11 +631,12 @@ END OF STREAM DATA
     Function GetAzureAccessToken {
         Param ()
 
-        $token = (Get-AzureRmContext).TokenCache.ReadItems()[-1]
+        $context = Get-AzureRmContext
+        $token = ($context.TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $context.Tenant.Id })[-1]
         if (($token.ExpiresOn.UtcDateTime.AddMinutes(-5)) -le ((Get-Date).ToUniversalTime())) {
             Write-Host ("Executing benign PowerShell statement in an attempt to refresh access token.")
             $null = Get-AzureRmSubscription
-            $token = (Get-AzureRmContext).TokenCache.ReadItems()[-1]
+            $token = ($context.TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $context.Tenant.Id })[-1]
         }
         $token.AccessToken
     }
@@ -808,9 +809,14 @@ Update
         }
     }
 
+$ScriptVersion = '1.1.2.1'
+
 # Create folder structure needed for results
 CreateResultFolder
 Start-Transcript -Path ("{0}\Transcript.txt" -f $AzureAutomationDiagResultPath)
+
+# Write the script version
+Write-Host ("Script version: {0}" -f $ScriptVersion)
 
 # Write the command line that was used when the script was called
 Write-Host ("Command line: {0}" -f $MyInvocation.Line)
