@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1.2.1
+.VERSION 1.1.2.2
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -180,9 +180,9 @@ Param (
 
     # List of modules that are required
     $Modules = @(
-        @{ Name = 'AzureRM.profile'; Version = [System.Version]'3.4.0' }
-        @{ Name = 'AzureRM.automation'; Version = [System.Version]'3.4.0' }
-        @{ Name = 'AzureRM.resources'; Version = [System.Version]'4.4.0' }
+        @{ Name = 'AzureRM.profile'; Version = [System.Version]'4.6.0' }
+        @{ Name = 'AzureRM.automation'; Version = [System.Version]'4.3.2' }
+        @{ Name = 'AzureRM.resources'; Version = [System.Version]'5.5.2' }
     )
 
     $AzureManagementBaseUri = 'https://management.azure.com'
@@ -538,9 +538,10 @@ Param (
                 if (($results.value | Measure-Object).Count -gt 0) {
                     Write-Host ("Retrieving stream details.  This may take some time.")
                     $Streams = @()
+                    $Headers = BuildHeaders
                     foreach ($stream in $results.value) {
                         $Uri = ("https://management.azure.com{0}?api-version=2015-10-31" -f $stream.id)
-                        $StreamResults = Invoke-RestMethod -Method GET -Uri $Uri -Headers (BuildHeaders) -ContentType "application/json" -UseBasicParsing
+                        $StreamResults = Invoke-RestMethod -Method GET -Uri $Uri -Headers $Headers -ContentType "application/json" -UseBasicParsing
                         $Streams += $StreamResults.properties
                     }
 
@@ -632,11 +633,11 @@ END OF STREAM DATA
         Param ()
 
         $context = Get-AzureRmContext
-        $token = ($context.TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $context.Tenant.Id })[-1]
+        $token = ($context.TokenCache.ReadItems() | Sort-Object ExpiresOn | Where-Object { (($_.TenantId -eq $context.Tenant.Id) -and ($_.DisplayableId -eq $context.Account.Id)) })[-1]
         if (($token.ExpiresOn.UtcDateTime.AddMinutes(-5)) -le ((Get-Date).ToUniversalTime())) {
             Write-Host ("Executing benign PowerShell statement in an attempt to refresh access token.")
             $null = Get-AzureRmSubscription
-            $token = ($context.TokenCache.ReadItems() | Where-Object { $_.TenantId -eq $context.Tenant.Id })[-1]
+            $token = ($context.TokenCache.ReadItems() | Sort-Object ExpiresOn | Where-Object { (($_.TenantId -eq $context.Tenant.Id) -and ($_.DisplayableId -eq $context.Account.Id)) })[-1]
         }
         $token.AccessToken
     }
@@ -809,7 +810,7 @@ Update
         }
     }
 
-$ScriptVersion = '1.1.2.1'
+$ScriptVersion = '1.1.2.2'
 
 # Create folder structure needed for results
 CreateResultFolder
@@ -836,6 +837,10 @@ if (!$RequirementsMet) {
     Break
 }
 
+# Clearing any Azure cached contexts for the current user
+Write-Host ("Clearing Azure cached contexts for the current user.")
+Clear-AzureRmContext -Scope CurrentUser -Force
+
 # Login to Azure.
 Write-Host ("Prompting user to login to Azure environment '{0}'." -f $Environment)
 $account = Add-AzureRmAccount -Environment $Environment
@@ -860,6 +865,8 @@ switch (($Subscriptions | Measure-Object).Count) {
     default { 
         Write-Host ("Multiple Subscriptions found, prompting user to select desired Azure Subscription.")
         $Subscription = ($Subscriptions | Out-GridView -Title 'Select Azure Subscription' -PassThru)
+        Write-Host "Subscription selected."
+        Write-Host $Subscription | Format-List
         if ($Subscription.Id) {
             $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.Id
         } else {
