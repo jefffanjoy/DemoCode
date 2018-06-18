@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1.2.3
+.VERSION 1.1.2.4
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -810,7 +810,7 @@ Update
         }
     }
 
-$ScriptVersion = '1.1.2.3'
+$ScriptVersion = '1.1.2.4'
 
 # Create folder structure needed for results
 CreateResultFolder
@@ -838,8 +838,9 @@ if (!$RequirementsMet) {
 }
 
 # Clearing any Azure cached contexts for the current user
-Write-Host ("Clearing Azure cached contexts for the current user.")
+Write-Host ("Clearing Azure cached contexts for the current process.")
 Clear-AzureRmContext -Scope Process -Force
+Start-Sleep -s 3
 
 # Login to Azure.
 Write-Host ("Prompting user to login to Azure environment '{0}'." -f $Environment)
