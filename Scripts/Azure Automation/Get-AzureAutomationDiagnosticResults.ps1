@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1.2.4
+.VERSION 1.1.2.5
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -180,9 +180,9 @@ Param (
 
     # List of modules that are required
     $Modules = @(
-        @{ Name = 'AzureRM.profile'; Version = [System.Version]'4.6.0' }
-        @{ Name = 'AzureRM.automation'; Version = [System.Version]'4.3.2' }
-        @{ Name = 'AzureRM.resources'; Version = [System.Version]'5.5.2' }
+        @{ Name = 'AzureRM.profile'; Version = [System.Version]'5.3.1' }
+        @{ Name = 'AzureRM.automation'; Version = [System.Version]'5.0.1' }
+        @{ Name = 'AzureRM.resources'; Version = [System.Version]'6.2.0' }
     )
 
     $AzureManagementBaseUri = 'https://management.azure.com'
@@ -810,7 +810,7 @@ Update
         }
     }
 
-$ScriptVersion = '1.1.2.4'
+$ScriptVersion = '1.1.2.5'
 
 # Create folder structure needed for results
 CreateResultFolder
