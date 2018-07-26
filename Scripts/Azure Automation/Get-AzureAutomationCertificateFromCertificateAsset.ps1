@@ -4,6 +4,10 @@
     [Parameter(Mandatory=$true)]
     [String] $AutomationAccountName,
     [Parameter(Mandatory=$false)]
+    [ValidateSet('AzureCloud','AzureUSGovernment')]
+    [Alias('EnvironmentName')]
+    [string] $Environment = 'AzureCloud',
+    [Parameter(Mandatory=$false)]
     [String] $CertificateAssetName = 'AzureRunAsCertificate',
     [Parameter(Mandatory=$true)]
     [String] $CertificatePassword,
@@ -16,7 +20,7 @@
 
 # Login to Azure
 Write-Output "Prompting user to login to Azure."
-Add-AzureRmAccount
+Add-AzureRmAccount -Environment $Environment
 
 # If there is more than one subscription, prompt user to select the desired one
 $subscriptions = Get-AzureRmSubscription
@@ -62,7 +66,9 @@ param (
     [Parameter(Mandatory=$true)]
     [String] $AutomationAccount,
     [Parameter(Mandatory=$true)]
-    [String] $CertificateAssetName
+    [String] $CertificateAssetName,
+    [Parameter(Mandatory=$true)]
+    [String] $Environment
 )
 $ErrorActionPreference = 'stop'
 
@@ -72,6 +78,7 @@ if ($RunAsConnection -eq $null)
     throw "RunAs connection is not available in the automation account. Please create one first"
 }
 Add-AzureRmAccount `
+    -Environment $Environment `
     -ServicePrincipal `
     -TenantId $RunAsConnection.TenantId `
     -ApplicationId $RunAsConnection.ApplicationId `
@@ -138,6 +145,7 @@ try
         ResourceGroupName       = $ResourceGroupName
         AutomationAccount       = $AutomationAccountName
         CertificateAssetName    = $CertificateAssetName
+        Environment             = $Environment
     }
     Write-Verbose ("Starting runbook Export-Cert with parameters: {0}" -f ($Params | ConvertTo-Json))
     $Job = Start-AzureRmAutomationRunbook `
