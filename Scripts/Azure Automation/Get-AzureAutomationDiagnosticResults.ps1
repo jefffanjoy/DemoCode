@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1.2.5
+.VERSION 1.1.2.6
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -810,7 +810,7 @@ Update
         }
     }
 
-$ScriptVersion = '1.1.2.5'
+$ScriptVersion = '1.1.2.6'
 
 # Create folder structure needed for results
 CreateResultFolder
@@ -842,6 +842,10 @@ Write-Host ("Clearing Azure cached contexts for the current process.")
 Clear-AzureRmContext -Scope Process -Force
 Start-Sleep -s 3
 
+# Enable the ability for auto save of context to process
+Write-Host ("Enabling context auto save for process scope.")
+Enable-AzureRmContextAutosave -Scope Process
+
 # Login to Azure.
 Write-Host ("Prompting user to login to Azure environment '{0}'." -f $Environment)
 $account = Add-AzureRmAccount -Environment $Environment
@@ -858,9 +862,9 @@ switch (($Subscriptions | Measure-Object).Count) {
     0 { throw "No subscriptions found." }
     1 { 
         if ($Subscriptions[0].Id) {
-            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscriptions[0].Id
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscriptions[0].Id -Scope Process
         } else {
-            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscriptions[0].SubscriptionId
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscriptions[0].SubscriptionId -Scope Process
         }
     }
     default { 
@@ -869,9 +873,9 @@ switch (($Subscriptions | Measure-Object).Count) {
         Write-Host "Subscription selected."
         Write-Host $Subscription | Format-List
         if ($Subscription.Id) {
-            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.Id
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.Id -Scope Process
         } else {
-            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.SubscriptionId
+            $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.SubscriptionId -Scope Process
         }
     }
 }
