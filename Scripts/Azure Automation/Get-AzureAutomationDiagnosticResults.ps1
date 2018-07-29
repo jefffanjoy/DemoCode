@@ -1,7 +1,7 @@
 
 <#PSScriptInfo
 
-.VERSION 1.1.2.6
+.VERSION 1.1.2.7
 
 .GUID 5922fab0-f90c-41a8-a59b-be5409271e6e
 
@@ -531,7 +531,7 @@ Param (
             # Process each job to capture job stream data
             $Jobs | Select-Object *, @{Name="Duration";Expression={$_.EndTime - $_.StartTime}}  | ForEach-Object {
                 Write-Host ("Retrieving job streams for job id '{0}' of runbook '{1}'." -f $_.JobId, $_.RunbookName)
-                $Uri = ("{0}/subscriptions/{1}/resourceGroups/{2}/providers/Microsoft.Automation/automationAccounts/{3}/jobs/{4}/streams?api-version=2015-10-31" -f $AzureManagementBaseUri, $AutomationAccount.SubscriptionId, $AutomationAccount.ResourceGroupName, $AutomationAccount.AutomationAccountName, $_.JobId)
+                $Uri = ("{0}subscriptions/{1}/resourceGroups/{2}/providers/Microsoft.Automation/automationAccounts/{3}/jobs/{4}/streams?api-version=2015-10-31" -f $AzureManagementBaseUri, $AutomationAccount.SubscriptionId, $AutomationAccount.ResourceGroupName, $AutomationAccount.AutomationAccountName, $_.JobId)
                 Write-Host ("Retrieving job stream data from '{0}'." -f $Uri)
                 $results = Invoke-RestMethod -Method GET -Uri $Uri -Headers (BuildHeaders) -ContentType "application/json" -UseBasicParsing
                 Write-Host ("Found '{0}' streams for job id '{1}'." -f $results.value.Count, $_.JobId)
@@ -540,7 +540,7 @@ Param (
                     $Streams = @()
                     $Headers = BuildHeaders
                     foreach ($stream in $results.value) {
-                        $Uri = ("https://management.azure.com{0}?api-version=2015-10-31" -f $stream.id)
+                        $Uri = ("{0}{1}?api-version=2015-10-31" -f $AzureManagementBaseUri, $stream.id)
                         $StreamResults = Invoke-RestMethod -Method GET -Uri $Uri -Headers $Headers -ContentType "application/json" -UseBasicParsing
                         $Streams += $StreamResults.properties
                     }
@@ -595,10 +595,25 @@ END OF STREAM DATA
         )
 
         Write-Host ("Retrieving list of hybrid worker groups registered in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
-        $Uri = ("https://management.azure.com/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Automation/automationAccounts/{2}/hybridRunbookWorkerGroups?api-version=2015-10-31" -f $AutomationAccount.SubscriptionId, $AutomationAccount.ResourceGroupName, $AutomationAccount.AutomationAccountName)
-        Write-Host ("Retrieving Hybrid Worker data from '{0}'." -f $Uri)
-        $results = Invoke-RestMethod -Method GET -Uri $Uri -Headers (BuildHeaders) -ContentType "application/json" -UseBasicParsing
-        $HWGList = $results.value
+        $Uri = ("{0}subscriptions/{1}/resourceGroups/{2}/providers/Microsoft.Automation/automationAccounts/{3}/hybridRunbookWorkerGroups?api-version=2015-10-31" -f $AzureManagementBaseUri, $AutomationAccount.SubscriptionId, $AutomationAccount.ResourceGroupName, $AutomationAccount.AutomationAccountName)
+        $HWGList = @()
+        do {
+            try {
+                Write-Host ("Retrieving Hybrid Worker data from '{0}'." -f $Uri)
+                $results = Invoke-RestMethod -Method GET -Uri $Uri -Headers (BuildHeaders) -ContentType "application/json" -UseBasicParsing
+                Write-Host ("Data successfully retrieved from {0}" -f $Uri)
+                Write-Host ("Next link: {0}" -f $results.nextLink)
+                $HWGList += $results.value
+                $Uri = $results.nextlink
+            } catch {
+                if ($_.Exception.Message -like '*ResourceCollectionRequestsThrottled*') {
+                    Write-Host ("Encountered resource throttling.  Sleeping for 60 seconds.")
+                    Start-Sleep -Second 60
+                } else {
+                    Write-Error -Exception $_
+                }
+            }
+        } until (!$Uri)
         # $HWGList = Get-AzureRmAutomationHybridWorkerGroup -ResourceGroupName $AutomationAccount.ResourceGroupName -AutomationAccountName $AutomationAccount.AutomationAccountName
         if (($HWGList | Measure-Object).Count -eq 0) {
             Write-Host ("No hybrid worker groups found in Automation account '{0}'." -f $AutomationAccount.AutomationAccountName)
@@ -656,6 +671,7 @@ END OF STREAM DATA
             Authorization = GetAuthorizationHeader
         }
     }
+
     Function GetLinkedWorkspaceFromAutomationAccount {
         Param (
             [Parameter(Mandatory=$true)]
@@ -666,7 +682,7 @@ END OF STREAM DATA
             [string] $AutomationAccountName
         )
 
-        $Uri = ("{0}/subscriptions/{1}/resourceGroups/{2}/providers/Microsoft.Automation/automationAccounts/{3}/linkedWorkspace?api-version=2017-05-15-preview" -f $AzureManagementBaseUri, $SubscriptionId, $ResourceGroupName, $AutomationAccountName)
+        $Uri = ("{0}subscriptions/{1}/resourceGroups/{2}/providers/Microsoft.Automation/automationAccounts/{3}/linkedWorkspace?api-version=2017-05-15-preview" -f $AzureManagementBaseUri, $SubscriptionId, $ResourceGroupName, $AutomationAccountName)
         Write-Host ("Retrieving Log Analytics linked workspace endpoint (if any) from '{0}'." -f $Uri)
         $results = Invoke-RestMethod -Method GET -Uri $Uri -Headers (BuildHeaders) -ContentType "application/json" -UseBasicParsing
         $results.id
@@ -810,7 +826,7 @@ Update
         }
     }
 
-$ScriptVersion = '1.1.2.6'
+$ScriptVersion = '1.1.2.7'
 
 # Create folder structure needed for results
 CreateResultFolder
@@ -881,6 +897,10 @@ switch (($Subscriptions | Measure-Object).Count) {
 }
 Write-Host ("Subscription successfully selected.")
 $AzureContext | Format-List
+
+# Setting Azure Resource Manager endpoint
+$AzureManagementBaseUri = $AzureContext.Environment.ResourceManagerUrl
+Write-Host ("Setting resource manager endpoint to {0}." -f $AzureManagementBaseUri)
 
 # Get list of Automation accounts to be processed
 if ($AutomationAccountNames) {
