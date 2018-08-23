@@ -71,6 +71,7 @@ Param (
         foreach ($HWG in $HWGList) {
             # If there are no workers in the group, then consider the group orphaned
             if (($HWG.hybridRunbookWorkers | Measure-Object).Count -eq 0) { 
+                Write-Host ("Adding hybrid worker group named '{0}' as orphaned." -f $HWG.name)
                 $OrphanedHWG += $HWG
             } else {
                 # Retrieve the most recently seen hybrid worker
@@ -78,6 +79,7 @@ Param (
                 $MostRecentSeenTime = Get-Date($MostRecentSeenWorker.lastSeenDateTime)
                 $MostRecentSeenTimeUTC = $MostRecentSeenTime.ToUniversalTime()
                 if ($MostRecentSeenTimeUTC -lt $CurrentTimeUTC.AddDays(-$DaysSinceLastSeen)) {
+                    Write-Host ("Adding hybrid worker group named '{0}' as orphaned." -f $HWG.name)
                     $OrphanedHWG += $HWG
                 }
             }
@@ -119,8 +121,8 @@ if (!($account)) {
 }
 
 # Selecting the subscription
+Write-Host ("Setting subscription to '{0}'." -f $SubscriptionId)
 $AzureContext = Set-AzureRmContext -SubscriptionId $SubscriptionId -Scope Process
-Write-Host ($AzureContext | Format-List)
 
 # Setting Azure Resource Manager endpoint
 $AzureManagementBaseUri = $AzureContext.Environment.ResourceManagerUrl
@@ -128,6 +130,7 @@ Write-Host ("Setting resource manager endpoint to {0}." -f $AzureManagementBaseU
 
 # Get the list or hybrid worker groups that are considered orphaned
 $OrphanedHWGs = GetOrphanedHybridWorkerGroups
+Write-Host ("{0} orphaned hybrid worker group(s) identified." -f ($OrphanedHWGS | Measure-Object).Count)
 
 # Remove each of the hybrid worker groups
 foreach ($HWG in $OrphanedHWGs) {
