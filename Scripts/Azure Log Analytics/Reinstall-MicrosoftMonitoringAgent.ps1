@@ -45,16 +45,14 @@ $PrivateConf = @"
 Write-Output ("Applying private configuration: `r`n{0}" -f $PrivateConf)
 
 $VMs = Get-AzureRMVM | Where-Object { $VMsToProcess -contains $_.Name }
-foreach ($VM in $VMs)
-{
+foreach ($VM in $VMs) {
     Write-Output ("Processing Virtual Machine '{0}'." -f $VM.Name)
     Write-Output ("Retrieving VM status information for VM '{0}'." -f $VM.Name)
     $Statuses = Get-AzureRmVM -ResourceGroupName $VM.ResourceGroupName -Name $VM.Name -Status
     $PowerState = $Statuses.Statuses | Where-Object { $_.Code -like 'PowerState*' }
     if ($PowerState.Code -eq 'PowerState/running') {
         Write-Output ("Virtual machine '{0}' is currently in a running state." -f $VM.Name)
-        if ($VM.StorageProfile.OsDisk.OsType -eq "Windows")
-        {
+        if ($VM.StorageProfile.OsDisk.OsType -eq "Windows") {
             $InstallExtension = $ForceInstallOfExtension
             $ExtensionInstallName = $null
             foreach ($Extension in $VM.Extensions) {
@@ -67,10 +65,12 @@ foreach ($VM in $VMs)
                         Remove-AzureRmVMExtension -ResourceGroupName $VM.ResourceGroupName -VMName $VM.Name -Name $ExtensionName -Force
                         $InstallExtension = $true
                         $ExtensionInstallName = $ExtensionName
-                    } catch {
+                    }
+                    catch {
                         Write-Error $_.Exception
                     }
-                } else {
+                }
+                else {
                     Write-Output ("Ignoring extension named '{0}' of type '{1}'." -f $ExtensionName, $ext.ExtensionType)
                 }
             }
@@ -79,14 +79,17 @@ foreach ($VM in $VMs)
                 Write-Output ("Installing MicrosoftMonitoringAgent extension to virtual machine '{0}' using extension name '{1}'." -f $VM.Name, $ExtensionInstallName)
                 try {
                     Set-AzureRmVMExtension -ResourceGroupName $VM.ResourceGroupName -VMName $VM.Name -Name $ExtensionInstallName -Publisher "Microsoft.EnterpriseCloud.Monitoring" -ExtensionType "MicrosoftMonitoringAgent" -TypeHandlerVersion '1.0' -Location $VM.Location -Settingstring $PublicConf -ProtectedSettingString $PrivateConf -ForceRerun True
-                } catch {
+                }
+                catch {
                     Write-Error $_.Exception
                 }
             }
-        } else {
+        }
+        else {
             Write-Output ("Skipping virtual machine '{0}' as the operating system is not Windows." -f $VM.Name)
         }
-    } else {
+    }
+    else {
         Write-Error ("Virtual Machine '{0}' is not currently in a running state which is required to reinstall the extension." -f $VM.Name)
     }
 }
