@@ -741,7 +741,7 @@ END OF STREAM DATA
             [string] $ResultsFolder
         )
 
-        $query = "Heartbeat | summarize arg_max(TimeGenerated,*) by Computer | order by Computer asc"
+        $query = "Heartbeat | summarize arg_max(TimeGenerated,*) by Computer, SourceComputerId | order by Computer asc"
         Write-Host ("Executing query against Log Analytics workspace '{0}'.  Query: {1}" -f $WorkspaceResourceUri, $query)
         $results = ExecuteLogAnalyticsQuery -WorkspaceResourceUri $WorkspaceResourceUri -Query $query
         Write-Host ("Returned '{0}' record(s)." -f ($results | Measure-Object).Count)
