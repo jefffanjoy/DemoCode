@@ -12,6 +12,11 @@
     [Alias('EnvironmentName')]
     [string] $Environment = 'AzureCloud'
 )
+    Function IsWindows10 {
+        # Returns true if operating system version is greater than or equal to 6.3.0
+        ([System.Version](Get-WmiObject -Class Win32_OperatingSystem).Version -ge [System.Version]'10.0.0')
+    }
+
     Function CreateSelfSignedCertificate {
         Param (
             [Parameter(Mandatory=$true)]
@@ -47,8 +52,15 @@ if (!(Test-IsAdmin)) {
     Creation of the self-signed certificates requires admin permissions.
     Please re-run this script as an Administrator.
 "@
-    Write-Warning $msg
-    Break
+    throw $msg
+}
+
+# Check if Windows 10 or later core for self-signed certificate creation
+if (!(IsWindows10)) {
+    $msg = @"
+    Operating system must be Windows 10 / Windows Server 2016 or newer.
+"@
+    throw $msg
 }
 
 # Login to Azure.
