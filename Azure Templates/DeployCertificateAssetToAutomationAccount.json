@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "automationAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Automation account to use.  If this account exists, check the SKU and tags to make sure they match the exisitng account, or they will be changed."
+      }
+    },
+    "certificateBase64Value": {
+      "type": "string",
+      "metadata": {
+        "description": "The certificate as a base 64 string value.  See https://github.com/jefffanjoy/DemoCode/blob/master/Scripts/Azure%20Automation/ConvertCertificateToBase64String.ps1 for an example to get base 64 certificate value."
+      }
+    },
+    "certificateName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the certificate."
+      }
+    },
+    "certificateDescription": {
+      "type": "string",
+      "metadata": {
+        "description": "Description of the certificate."
+      }
+    },
+    "certificateThumbprint": {
+      "type": "string",
+      "metadata": {
+        "description": "Thumbprint of the certificate."
+      }
+    },
+    "certificateIsExportable": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Whether or not to mark the certificate as exportable."
+      }
+    }
+  },
+  "resources": [
+    {
+      "name": "[parameters('automationAccountName')]",
+      "type": "Microsoft.Automation/automationAccounts",
+      "apiVersion": "2015-10-31",
+      "properties": {
+        "sku": {
+          "name": "Basic"
+        }
+      },
+      "location": "[resourceGroup().location]",
+      "tags": {},
+      "resources": [
+        {
+          "name": "[parameters('certificateName')]",
+          "type": "certificates",
+          "apiVersion": "2015-10-31",
+          "properties": {
+            "base64Value": "[parameters('certificateBase64Value')]",
+            "description": "[parameters('certificateDescription')]",
+            "thumbprint": "[parameters('certificateThumbprint')]",
+            "isExportable": "[parameters('certificateIsExportable')]"
+          },
+          "dependsOn": [
+            "[concat('Microsoft.Automation/automationAccounts/', parameters('automationAccountName'))]"
+          ]
+        }
+      ]
+    }
+  ]
+}
