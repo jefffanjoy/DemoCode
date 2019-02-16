@@ -34,8 +34,8 @@ Param
 
 # Set the required key storage flags
 $flags = [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::Exportable `
-    + [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet `
-    + [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet 
+    -bor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::PersistKeySet `
+    -bor [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::MachineKeySet 
 # Load the certificate into memory
 $cert = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList @($FilePath, $Password, $flags)
 # Export the certificate and convert into base 64 string
