@@ -65,29 +65,29 @@ if (!(IsWindows10)) {
 
 # Login to Azure.
 Write-Output ("Prompting user to login to Azure environment '{0}'." -f $Environment)
-$account = Add-AzureRmAccount -Environment $Environment
+$account = Connect-AzAccount -Environment $Environment
 if (!($account)) {
     throw ("Unable to successfully authenticate to Azure for environment '{0}'." -f $Environment)
 }
 
 # Select subscription if more than one is available
 Write-Output ("Selecting Azure subscription with id '{0}'." -f $SubscriptionId)
-$Subscription = Get-AzureRmSubscription -SubscriptionId $SubscriptionId
+$Subscription = Get-AzSubscription -SubscriptionId $SubscriptionId
 if (!$Subscription) { (throw "Unable to find subscription with id '{0}'." -f $SubscriptionId) }
 if ($Subscription.Id) {
-    $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.Id
+    $AzureContext = Set-AzContext -SubscriptionId $Subscription.Id
 } else {
-    $AzureContext = Set-AzureRmContext -SubscriptionId $Subscription.SubscriptionId
+    $AzureContext = Set-AzContext -SubscriptionId $Subscription.SubscriptionId
 }
 Write-Output ("Subscription successfully selected.")
 $AzureContext | Format-List
 
 # Select automation account to renew
 Write-Output ("Selecting Automation Account '{0}'." -f $AutomationAccountName)
-$AutomationAccount = Get-AzureRmAutomationAccount | Where-Object { $_.AutomationAccountName -eq $AutomationAccountName }
+$AutomationAccount = Get-AzAutomationAccount | Where-Object { $_.AutomationAccountName -eq $AutomationAccountName }
 if (!$AutomationAccountName) { (throw "Unable to find automation account with name '{0}'." -f $AutomationAccountName) }
 # Get the current run as connection object
-$AzureRunAsConnection = Get-AzureRmAutomationConnection `
+$AzureRunAsConnection = Get-AzAutomationConnection `
     -ResourceGroupName $AutomationAccount.ResourceGroupName `
     -AutomationAccountName $AutomationAccount.AutomationAccountName `
     -Name 'AzureRunAsConnection'
@@ -95,7 +95,7 @@ if (!$AzureRunAsConnection) { throw "Connection asset 'AzureRunAsConnection' not
 $AzureRunAsConnection
 
 # Get thecurrent run as certificate object
-$AzureRunAsCertificate = Get-AzureRmAutomationCertificate `
+$AzureRunAsCertificate = Get-AzAutomationCertificate `
     -ResourceGroupName $AutomationAccount.ResourceGroupName `
     -AutomationAccountName $AutomationAccount.AutomationAccountName `
     -Name 'AzureRunAsCertificate'
@@ -103,11 +103,11 @@ if (!$AzureRunAsCertificate) { throw "Certificate asset 'AzureRunAsCertificate' 
 $AzureRunAsCertificate
 
 # Get the Azure AD application
-$ADApplication = Get-AzureRmADApplication -ApplicationId $AzureRunAsConnection.FieldDefinitionValues.ApplicationId
+$ADApplication = Get-AzADApplication -ApplicationId $AzureRunAsConnection.FieldDefinitionValues.ApplicationId
 if (!$ADApplication) { throw ("Unable to retrieve Azure Active Directory application with application id '{0}'." -f $AzureRunAsConnection.ApplicationId) }
 
 # Get the service principal
-$Spn = Get-AzureRmADServicePrincipal -ServicePrincipalName $ADApplication.ApplicationId
+$Spn = Get-AzADServicePrincipal -ServicePrincipalName $ADApplication.ApplicationId
 if (!$Spn) { throw ("Unable to retrieve service principal for Azure Active Directory application with application id '{0}'." -f $AzureRunAsConnection.ApplicationId) }
 
 $CertificateName = 'AzureRunAsCertificate'
@@ -124,12 +124,12 @@ $CertValue = [System.Convert]::ToBase64String($PfxCert.GetRawCertData())
 
 # This is the most likely failure point as modifying the SPN may require a higher level of permissions
 Write-Output ("Adding the new certificate as the credential for the service principal.")
-New-AzureRmADSpCredential -ServicePrincipalName $AzureADSPNName -CertValue $CertValue -StartDate ((Get-Date).AddMinutes(1)) -EndDate $PfxCert.GetExpirationDateString()
+New-AzADSpCredential -ServicePrincipalName $AzureADSPNName -CertValue $CertValue -StartDate ((Get-Date).AddMinutes(1)) -EndDate $PfxCert.GetExpirationDateString()
 
 # Upload the new certificate to the AzureRunAsCertificate asset
 Write-Output ("Updating AzureRunAsCertificate asset with new certificate.")
 $SecurePassword = ConvertTo-SecureString -String $CertificatePassword -AsPlainText -Force
-Set-AzureRmAutomationCertificate `
+Set-AzAutomationCertificate `
     -ResourceGroupName $AutomationAccount.ResourceGroupName `
     -AutomationAccountName $AutomationAccount.AutomationAccountName `
     -Name $AzureRunAsCertificate.Name `
@@ -140,15 +140,16 @@ Set-AzureRmAutomationCertificate `
 # Update the AzureRunAsConnection asset with the new certificate thumbprint
 Write-Output ("Updating AzureRunAsConnection asset with new certificate thumbprint.")
 # Have to remove and create a new connection since there is a bug in Set-AzureRmAutomationConnectionFieldValue
+## This needs to be further investigated to see if Set-AzAutomationConnectionFieldName has had the bug resolved.
 # that adds quotes around any string value causing the certificate thumbprint to not match the certificate
 $AzureRunAsConnection.FieldDefinitionValues.CertificateThumbprint = $PfxCert.Thumbprint
-Remove-AzureRmAutomationConnection `
+Remove-AzAutomationConnection `
     -ResourceGroupName $AutomationAccount.ResourceGroupName `
     -AutomationAccountName $AutomationAccount.AutomationAccountName `
     -Name $AzureRunAsConnection.Name `
     -Force
 
-New-AzureRmAutomationConnection `
+New-AzAutomationConnection `
     -ResourceGroupName $AutomationAccount.ResourceGroupName `
     -AutomationAccountName $AutomationAccount.AutomationAccountName `
     -Name $AzureRunAsConnection.Name `
